@@ -131,6 +131,32 @@ Lets scratch the surface shall we?
 - Mailing System
 - Holliday Events
 - Google Login
+
+## Cloud Account System (GitHub Pages friendly)
+
+A simple account system has been added to allow save data to be stored in the cloud instead of in local storage. The implementation now uses [Supabase](https://supabase.com) (Auth + Postgres) and works on static hosts such as GitHub Pages.
+
+To enable it:
+
+1. Create a Supabase project and in the SQL editor run something like:
+
+   ```sql
+   create table saves (
+     user_id text primary key,
+     data text,
+     updated_at timestamptz default now()
+   );
+   ```
+
+2. Enable **Email/Password** authentication in the Supabase dashboard.
+3. Copy your project's **URL** and **anon public key** and paste them into the top of `oldprodigy/account.js`, replacing the placeholders (`SUPABASE_URL`/`SUPABASE_ANON_KEY`).
+4. Deploy your updated pages. Users will see a "Login/Sign Up" modal in the game screen. After logging in they can click **Cloud Save** / **Cloud Load** buttons that appear alongside the normal load/create options.
+
+No local storage is used; all state is saved directly to the `saves` table under the signed‑in user’s ID.
+
+If you want to customise how the game state is extracted or applied (some versions export helpers such as `getProdigySaveString`/`applyProdigySaveString`), modify `account.js` accordingly.
+
+This system is optional; offline "Save Character"/"Load Character" still works in the usual way.
 - Multiplayer
 
 Yep, you heard that right, that's just scratching the surface. This version is based off of 1-50-0, which is already one of the most

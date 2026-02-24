@@ -7,6 +7,10 @@
     <meta name="description" content="The legendary math game Prodigy is now legendary again, and no longer a math game!"/>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <!-- Supabase (replace URL/key below with your project's values) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- account helper (contains login/cloud save/load logic) -->
+    <script src="./account.js"></script>
     <link rel="icon" type="image/png" href="https://daboss7173.github.io/oldprodigy/assets/favicon.png">
     <link rel="stylesheet" href="https://code.prodigygame.com/assets/Font-Awesome/css/font-awesome-bb53ad7bff.min.css">
     <link rel="stylesheet" type="text/css" href="https://code.prodigygame.com/assets/styles/main-8920cc59bb.css">
@@ -440,6 +444,26 @@
 				<button name="button" type="submit" class="game-button game-button-emerald" onclick="NewWizard();">
 				  <span class="game-button-inner">New Wizard</span>
 				</button>
+				<!-- cloud actions shown when logged in -->
+				<button id="btn-cloud-save" class="game-button game-button-sapphire" style="display:none;">Cloud Save</button>
+				<button id="btn-cloud-load" class="game-button game-button-sapphire" style="display:none;">Cloud Load</button>
+			</div>
+		</div>
+		<!-- account status header -->
+		<div id="account-ui" style="display:none; position:absolute; top:10px; right:10px; z-index:1000; color:#fff;">
+			<span id="welcome-msg"></span>
+			<button id="btn-logout">Logout</button>
+		</div>
+		<!-- modal for login / registration -->
+		<div id="login-modal" style="display:none; position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1000;">
+			<div style="background:#fff;padding:20px;margin:100px auto;width:300px;border-radius:8px;">
+				<h2>Account</h2>
+				<input type="email" id="login-email" placeholder="Email" style="width:100%;margin-bottom:8px;"><br>
+				<input type="password" id="login-password" placeholder="Password" style="width:100%;margin-bottom:8px;"><br>
+				<button id="btn-login">Login</button>
+				<button id="btn-signup">Sign Up</button>
+				<button id="btn-close-login">Close</button>
+				<div id="login-error" style="color:red;margin-top:8px;"></div>
 			</div>
 		</div>
     </div>
@@ -575,6 +599,57 @@
                 classCodeModal.render();
             }
         };
+    </script>
+
+    <!-- account system wiring script -->
+    <script>
+        // simple UI helpers, rely on account.js
+        $(function() {
+            function showLoginModal() { $('#login-modal').show(); }
+            function hideLoginModal() { $('#login-modal').hide(); $('#login-error').text(''); }
+
+            $('#btn-login').click(function() {
+                var email = $('#login-email').val();
+                var pwd = $('#login-password').val();
+                Account.signIn(email, pwd).catch(function(err){ $('#login-error').text(err.message); });
+            });
+            $('#btn-signup').click(function() {
+                var email = $('#login-email').val();
+                var pwd = $('#login-password').val();
+                Account.signUp(email, pwd).catch(function(err){ $('#login-error').text(err.message); });
+            });
+            $('#btn-close-login').click(hideLoginModal);
+            $('#btn-logout').click(function(){ Account.signOut(); });
+            $('#btn-cloud-save').click(function(){ Account.cloudSave(); });
+            $('#btn-cloud-load').click(function(){ Account.cloudLoad(); });
+
+            // show login button when not authenticated
+            Account.ui.showLogin = showLoginModal;
+            Account.ui.hideLogin = hideLoginModal;
+
+            // hook into existing LoadCharacter/NewWizard buttons so login popup appears
+            var origLoad = window.LoadCharacter;
+            window.LoadCharacter = function() {
+                if (!Account.ui.currentUser) { showLoginModal(); } else {
+                    origLoad();
+                }
+            };
+
+            // update account-ui when auth changes
+            Account.ui.updateLoginState = function(user) {
+                if (user) {
+                    $('#welcome-msg').text('Hello, ' + (user.email || ''));
+                    $('#account-ui').show();
+                    $('#btn-cloud-save,#btn-cloud-load').show();
+                    hideLoginModal();
+                    Account.ui.currentUser = user;
+                } else {
+                    $('#account-ui').hide();
+                    $('#btn-cloud-save,#btn-cloud-load').hide();
+                    Account.ui.currentUser = null;
+                }
+            };
+        });
     </script>
 
 </body>
